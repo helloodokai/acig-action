@@ -14,7 +14,7 @@ inputs:
   version:
     description: 'acig version to install'
     required: false
-    default: '1.5.2'
+    default: '1.5.3'
   format:
     description: 'Output format: json, md, or both'
     required: false
