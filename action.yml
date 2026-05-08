@@ -35,17 +35,31 @@ inputs:
     description: 'Anthropic API key'
     required: false
     default: ''
+  version:
+    description: 'ACIG version to install (defaults to latest release)'
+    required: false
+    default: ''
 runs:
   using: 'composite'
   steps:
     - name: Install acig
       shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
-        ACIG_VERSION=$(curl -sL "https://api.github.com/repos/helloodokai/acig/releases/latest" | grep '"tag_name"' | sed 's/.*v\([0-9.]*\).*/\1/')
+        if [ -n "$INPUT_VERSION" ]; then
+          ACIG_VERSION="$INPUT_VERSION"
+          echo "::group::Installing acig v${ACIG_VERSION} (pinned)"
+        else
+          ACIG_VERSION=$(curl -sL -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/helloodokai/acig/releases/latest" | grep '"tag_name"' | sed 's/.*v\([0-9.]*\).*/\1/')
+          echo "::group::Installing acig v${ACIG_VERSION} (latest)"
+        fi
         if [ -z "$ACIG_VERSION" ]; then
-          echo "::error::could not determine latest acig version"
+          echo "::error::could not determine acig version"
           exit 1
         fi
+        echo "acig version: ${ACIG_VERSION}"
         RELEASE_URL="https://github.com/helloodokai/acig/releases/download/v${ACIG_VERSION}"
         
         curl -sL "${RELEASE_URL}/checksums.txt" -o /tmp/checksums.txt
@@ -73,6 +87,8 @@ runs:
         
         tar xzf acig.tar.gz -C /usr/local/bin acig
         chmod +x /usr/local/bin/acig
+        /usr/local/bin/acig --version
+        echo "::endgroup::"
 
     - name: Run acig
       shell: bash
